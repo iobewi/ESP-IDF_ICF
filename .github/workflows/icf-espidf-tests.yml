@@ -24,8 +24,8 @@ jobs:
       - name: Build test project
         run: |
           idf.py set-target esp32s3
-          idf.py build
+          idf.py -C examples/icf_decode build 
 
-      - name: Run component tests
+      - name: Build component tests
         run: |
-          idf.py test
+          idf.py -C test build

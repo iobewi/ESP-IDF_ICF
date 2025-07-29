@@ -1,0 +1,8 @@
+version: "1.1.0~0"
+description: IOBEWI Capsule Format API
+url: https://github.com/iobewi/ESP-IDF_ICF  
+repository: https://github.com/iobewi/ESP-IDF_ICF.git
+documentation: https://github.com/iobewi/ESP-IDF_ICF/blob/main/README.md
+issues: https://github.com/iobewi/ESP-IDF_ICF/issues
+dependencies:
+  idf: ">=5.0"
