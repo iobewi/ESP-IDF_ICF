@@ -14,6 +14,7 @@
 #define ICF_FREE free
 #endif
 
+
 static icf_verify_func_t verify_func = crypto_sign_verify_detached;
 
 void icf_set_verify_func(icf_verify_func_t func)
