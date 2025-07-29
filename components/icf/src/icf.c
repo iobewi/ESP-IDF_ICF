@@ -55,8 +55,7 @@ esp_err_t icf_parse(const uint8_t *buffer, size_t len, icf_capsule_t *capsule)
             break;
         case ICF_TLV_EXPIRES:
             if (tlv_len != 4) return ESP_ERR_INVALID_SIZE;
-            capsule->expires = ((uint32_t)value[0] << 24) | ((uint32_t)value[1] << 16) |
-                               ((uint32_t)value[2] << 8) | value[3];
+            capsule->expires = READ_U32_BE(value);
             break;
         case ICF_TLV_BADGE_TYPE:
             if (tlv_len != 1) return ESP_ERR_INVALID_SIZE;
