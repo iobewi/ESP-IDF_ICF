@@ -2,6 +2,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sodium.h>
+#ifdef ICF_ENABLE_JSON
+#include <cjson/cJSON.h>
+#endif
 #include "icf/icf.h"
 
 #ifndef ICF_MALLOC
@@ -234,4 +237,15 @@ void icf_capsule_print(const icf_capsule_t *capsule)
         printf("Signature present\n");
     }
 }
+
+#ifdef ICF_ENABLE_JSON
+cJSON *icf_payload_to_json(const icf_capsule_t *capsule)
+{
+    if (!capsule || !capsule->payload) {
+        return NULL;
+    }
+    return cJSON_ParseWithLength((const char *)capsule->payload,
+                                 capsule->payload_len);
+}
+#endif
 
