@@ -147,11 +147,21 @@ bool icf_verify(const icf_capsule_t *capsule, const uint8_t pubkey[32])
 
 void icf_capsule_free(icf_capsule_t *capsule)
 {
-    if (capsule && capsule->payload) {
+    if (!capsule) {
+        return;
+    }
+
+    if (capsule->payload) {
+        sodium_memzero(capsule->payload, capsule->payload_len);
         free(capsule->payload);
         capsule->payload = NULL;
         capsule->payload_len = 0;
     }
+
+    sodium_memzero(capsule->hash, sizeof(capsule->hash));
+    sodium_memzero(capsule->signature, sizeof(capsule->signature));
+    capsule->has_hash = false;
+    capsule->has_signature = false;
 }
 
 void icf_capsule_print(const icf_capsule_t *capsule)
