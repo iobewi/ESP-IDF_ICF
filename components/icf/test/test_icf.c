@@ -1,4 +1,4 @@
-#include "unity.h"
+#include <unity.h>
 #include "icf/icf.h"
 #include <cjson/cJSON.h>
 #include <sodium.h>
@@ -29,6 +29,7 @@ static int mock_verify_detached(const unsigned char *sig, const unsigned char *m
     return 0;
 }
 
+TEST_CASE("icf_parse minimal", "[icf]")
 void test_parse_minimal(void)
 {
     const uint8_t capsule[] = {0x01,0x03,'a','b','c',0xFF,0x00};
@@ -38,6 +39,7 @@ void test_parse_minimal(void)
     icf_capsule_free(&cap);
 }
 
+TEST_CASE("icf_parse no end", "[icf]")
 void test_parse_no_end(void)
 {
     const uint8_t capsule[] = {0x01,0x03,'a','b','c'};
@@ -47,6 +49,7 @@ void test_parse_no_end(void)
     icf_capsule_free(&cap);
 }
 
+TEST_CASE("icf_parse trailing data", "[icf]")
 void test_parse_trailing_data(void)
 {
     const uint8_t capsule[] = {0x01,0x03,'a','b','c',0x00};
@@ -54,6 +57,7 @@ void test_parse_trailing_data(void)
     TEST_ASSERT_EQUAL(ESP_ERR_INVALID_SIZE, icf_parse(capsule, sizeof(capsule), &cap));
 }
 
+TEST_CASE("icf_parse trailing after end", "[icf]")
 void test_parse_trailing_after_end(void)
 {
     const uint8_t capsule[] = {0x01,0x03,'a','b','c',0xFF,0x00,0x00};
@@ -61,6 +65,7 @@ void test_parse_trailing_after_end(void)
     TEST_ASSERT_EQUAL(ESP_ERR_INVALID_SIZE, icf_parse(capsule, sizeof(capsule), &cap));
 }
 
+TEST_CASE("icf_parse_strict requires fields", "[icf]")
 void test_parse_strict_requires_fields(void)
 {
     const uint8_t capsule[] = {0x01,0x03,'a','b','c',0xFF,0x00};
@@ -69,6 +74,7 @@ void test_parse_strict_requires_fields(void)
     TEST_ASSERT_EQUAL(ESP_ERR_INVALID_STATE, icf_parse_strict(capsule, sizeof(capsule), pk, &cap));
 }
 
+TEST_CASE("icf_parse_strict invalid signature", "[icf]")
 void test_parse_strict_invalid_signature(void)
 {
     const uint8_t capsule[] = {
@@ -91,6 +97,7 @@ void test_parse_strict_invalid_signature(void)
     TEST_ASSERT_EQUAL(ESP_ERR_INVALID_CRC, icf_parse_strict(capsule, sizeof(capsule), pk, &cap));
 }
 
+TEST_CASE("icf_parse_strict valid signature", "[icf]")
 void test_parse_strict_valid_signature(void)
 {
     uint8_t capsule[150];
@@ -113,6 +120,7 @@ void test_parse_strict_valid_signature(void)
     icf_capsule_free(&cap);
 }
 
+TEST_CASE("icf_parse invalid hash", "[icf]")
 void test_invalid_hash(void)
 {
     uint8_t capsule[41];
@@ -124,6 +132,7 @@ void test_invalid_hash(void)
     TEST_ASSERT_EQUAL(ESP_ERR_INVALID_CRC, icf_parse(capsule, pos, &cap));
 }
 
+TEST_CASE("icf_parse complete valid", "[icf]")
 void test_parse_complete_valid(void)
 {
     uint8_t capsule[256];
@@ -164,6 +173,7 @@ void test_parse_complete_valid(void)
     icf_capsule_free(&cap);
 }
 
+TEST_CASE("icf_parse invalid url size", "[icf]")
 void test_invalid_url_size(void)
 {
     uint8_t capsule[205];
@@ -172,6 +182,7 @@ void test_invalid_url_size(void)
     TEST_ASSERT_EQUAL(ESP_ERR_INVALID_SIZE, icf_parse(capsule, 205, &cap));
 }
 
+TEST_CASE("icf_parse invalid language size", "[icf]")
 void test_invalid_language_size(void)
 {
     const uint8_t capsule[] = {0x02,0x01,'e',0xFF,0x00};
@@ -179,6 +190,7 @@ void test_invalid_language_size(void)
     TEST_ASSERT_EQUAL(ESP_ERR_INVALID_SIZE, icf_parse(capsule, sizeof(capsule), &cap));
 }
 
+TEST_CASE("icf_parse invalid title size", "[icf]")
 void test_invalid_title_size(void)
 {
     uint8_t capsule[70];
@@ -187,6 +199,7 @@ void test_invalid_title_size(void)
     TEST_ASSERT_EQUAL(ESP_ERR_INVALID_SIZE, icf_parse(capsule, 69, &cap));
 }
 
+TEST_CASE("icf_parse invalid tag size", "[icf]")
 void test_invalid_tag_size(void)
 {
     const uint8_t capsule[] = {0x04,0x02,1,2,0xFF,0x00};
@@ -194,6 +207,7 @@ void test_invalid_tag_size(void)
     TEST_ASSERT_EQUAL(ESP_ERR_INVALID_SIZE, icf_parse(capsule, sizeof(capsule), &cap));
 }
 
+TEST_CASE("icf_parse invalid retention size", "[icf]")
 void test_invalid_retention_size(void)
 {
     const uint8_t capsule[] = {0x05,0x02,1,2,0xFF,0x00};
@@ -201,6 +215,7 @@ void test_invalid_retention_size(void)
     TEST_ASSERT_EQUAL(ESP_ERR_INVALID_SIZE, icf_parse(capsule, sizeof(capsule), &cap));
 }
 
+TEST_CASE("icf_parse invalid expires size", "[icf]")
 void test_invalid_expires_size(void)
 {
     const uint8_t capsule[] = {0x06,0x03,0,0,0,0xFF,0x00};
@@ -208,6 +223,7 @@ void test_invalid_expires_size(void)
     TEST_ASSERT_EQUAL(ESP_ERR_INVALID_SIZE, icf_parse(capsule, sizeof(capsule), &cap));
 }
 
+TEST_CASE("icf_parse invalid badge size", "[icf]")
 void test_invalid_badge_size(void)
 {
     const uint8_t capsule[] = {0xE0,0x02,1,2,0xFF,0x00};
@@ -215,6 +231,7 @@ void test_invalid_badge_size(void)
     TEST_ASSERT_EQUAL(ESP_ERR_INVALID_SIZE, icf_parse(capsule, sizeof(capsule), &cap));
 }
 
+TEST_CASE("icf_parse invalid payload nomem", "[icf]")
 void test_invalid_payload_nomem(void)
 {
     const uint8_t capsule[] = {0xE1,0x04,'t','e','s','t',0xFF,0x00};
@@ -223,6 +240,7 @@ void test_invalid_payload_nomem(void)
     TEST_ASSERT_EQUAL(ESP_ERR_NO_MEM, icf_parse(capsule, sizeof(capsule), &cap));
 }
 
+TEST_CASE("icf_payload json parse", "[icf]")
 void test_json_payload_parse(void)
 {
     const uint8_t capsule[] = {
@@ -237,6 +255,7 @@ void test_json_payload_parse(void)
     icf_capsule_free(&cap);
 }
 
+TEST_CASE("icf_parse invalid hash length", "[icf]")
 void test_invalid_hash_length(void)
 {
     uint8_t capsule[20];
@@ -248,6 +267,7 @@ void test_invalid_hash_length(void)
     TEST_ASSERT_EQUAL(ESP_ERR_INVALID_SIZE, ret);
 }
 
+TEST_CASE("icf_parse invalid signature length", "[icf]")
 void test_invalid_signature_length(void)
 {
     const uint8_t capsule[] = {0xF3,0x01,0x00,0xFF,0x00};
@@ -255,6 +275,7 @@ void test_invalid_signature_length(void)
     TEST_ASSERT_EQUAL(ESP_ERR_INVALID_SIZE, icf_parse(capsule, sizeof(capsule), &cap));
 }
 
+TEST_CASE("icf_parse invalid authority length", "[icf]")
 void test_invalid_authority_length(void)
 {
     const uint8_t capsule[] = {0xF4,0x07,0,1,2,3,4,5,6,0xFF,0x00};
@@ -262,6 +283,7 @@ void test_invalid_authority_length(void)
     TEST_ASSERT_EQUAL(ESP_ERR_INVALID_SIZE, icf_parse(capsule, sizeof(capsule), &cap));
 }
 
+TEST_CASE("icf_parse invalid end length", "[icf]")
 void test_invalid_end_length(void)
 {
     const uint8_t capsule[] = {0xFF,0x01,0x00};
@@ -270,30 +292,3 @@ void test_invalid_end_length(void)
 }
 
 
-int main(void)
-{
-    UNITY_BEGIN();
-    test_parse_minimal();
-    test_parse_no_end();
-    test_parse_trailing_data();
-    test_parse_trailing_after_end();
-    test_parse_strict_requires_fields();
-    test_parse_strict_invalid_signature();
-    test_parse_strict_valid_signature();
-    test_invalid_hash();
-    test_parse_complete_valid();
-    test_invalid_url_size();
-    test_invalid_language_size();
-    test_invalid_title_size();
-    test_invalid_tag_size();
-    test_invalid_retention_size();
-    test_invalid_expires_size();
-    test_invalid_badge_size();
-    test_invalid_payload_nomem();
-    test_json_payload_parse();
-    test_invalid_hash_length();
-    test_invalid_signature_length();
-    test_invalid_authority_length();
-    test_invalid_end_length();
-    return UNITY_END();
-}

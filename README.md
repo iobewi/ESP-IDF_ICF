@@ -19,5 +19,5 @@ void icf_capsule_free(icf_capsule_t *capsule);
 verification. It returns an error if the capsule lacks a signature or an
 authority ID, or if the signature verification fails.
 
-Unit tests are located in `tests/` and can be run with the ESP-IDF
-`unity` test runner.
+Unit tests are located in `components/icf/test/` and can be executed
+with the ESP-IDF `unity` test runner using `idf.py test`.
