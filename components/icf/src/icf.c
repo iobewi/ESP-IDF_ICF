@@ -4,6 +4,39 @@
 #include <sodium.h>
 #include "icf/icf.h"
 
+static esp_err_t parse_tlv_url(icf_capsule_t *capsule,
+                               const uint8_t *value, uint8_t len)
+{
+    if (len >= sizeof(capsule->url)) {
+        return ESP_ERR_INVALID_SIZE;
+    }
+    memcpy(capsule->url, value, len);
+    capsule->url[len] = '\0';
+    return ESP_OK;
+}
+
+static esp_err_t parse_tlv_lang(icf_capsule_t *capsule,
+                                const uint8_t *value, uint8_t len)
+{
+    if (len != 2) {
+        return ESP_ERR_INVALID_SIZE;
+    }
+    memcpy(capsule->language, value, 2);
+    capsule->language[2] = '\0';
+    return ESP_OK;
+}
+
+static esp_err_t parse_tlv_signature(icf_capsule_t *capsule,
+                                     const uint8_t *value, uint8_t len)
+{
+    if (len != 64) {
+        return ESP_ERR_INVALID_SIZE;
+    }
+    memcpy(capsule->signature, value, 64);
+    capsule->has_signature = true;
+    return ESP_OK;
+}
+
 esp_err_t icf_parse(const uint8_t *buffer, size_t len, icf_capsule_t *capsule)
 {
     if (!buffer || !capsule) {
@@ -17,6 +50,7 @@ esp_err_t icf_parse(const uint8_t *buffer, size_t len, icf_capsule_t *capsule)
     size_t signed_len = 0;
 
     bool got_end = false;
+    esp_err_t err;
 
     while (pos + 2 <= len) {
         uint8_t type = buffer[pos++];
@@ -29,14 +63,12 @@ esp_err_t icf_parse(const uint8_t *buffer, size_t len, icf_capsule_t *capsule)
 
         switch (type) {
         case ICF_TLV_URL:
-            if (tlv_len >= sizeof(capsule->url)) return ESP_ERR_INVALID_SIZE;
-            memcpy(capsule->url, value, tlv_len);
-            capsule->url[tlv_len] = '\0';
+            err = parse_tlv_url(capsule, value, tlv_len);
+            if (err != ESP_OK) return err;
             break;
         case ICF_TLV_LANGUAGE:
-            if (tlv_len != 2) return ESP_ERR_INVALID_SIZE;
-            memcpy(capsule->language, value, 2);
-            capsule->language[2] = '\0';
+            err = parse_tlv_lang(capsule, value, tlv_len);
+            if (err != ESP_OK) return err;
             break;
         case ICF_TLV_TITLE:
             if (tlv_len >= sizeof(capsule->title)) return ESP_ERR_INVALID_SIZE;
@@ -73,9 +105,8 @@ esp_err_t icf_parse(const uint8_t *buffer, size_t len, icf_capsule_t *capsule)
             capsule->has_hash = true;
             break;
         case ICF_TLV_SIGNATURE:
-            if (tlv_len != 64) return ESP_ERR_INVALID_SIZE;
-            memcpy(capsule->signature, value, 64);
-            capsule->has_signature = true;
+            err = parse_tlv_signature(capsule, value, tlv_len);
+            if (err != ESP_OK) return err;
             break;
         case ICF_TLV_AUTHORITY_ID:
             if (tlv_len != 8) return ESP_ERR_INVALID_SIZE;
