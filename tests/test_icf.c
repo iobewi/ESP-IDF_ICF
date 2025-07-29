@@ -1,5 +1,6 @@
 #include "unity.h"
 #include "icf/icf.h"
+#include <cjson/cJSON.h>
 #include <sodium.h>
 #include <string.h>
 #include <stdlib.h>
@@ -222,6 +223,20 @@ void test_invalid_payload_nomem(void)
     TEST_ASSERT_EQUAL(ESP_ERR_NO_MEM, icf_parse(capsule, sizeof(capsule), &cap));
 }
 
+void test_json_payload_parse(void)
+{
+    const uint8_t capsule[] = {
+        0xE1,0x07,'{','"','a','"',':','1','}',
+        0xFF,0x00
+    };
+    icf_capsule_t cap;
+    TEST_ASSERT_EQUAL(ESP_OK, icf_parse(capsule, sizeof(capsule), &cap));
+    cJSON *json = icf_payload_to_json(&cap);
+    assert(json != NULL);
+    cJSON_Delete(json);
+    icf_capsule_free(&cap);
+}
+
 void test_invalid_hash_length(void)
 {
     uint8_t capsule[20];
@@ -275,6 +290,7 @@ int main(void)
     test_invalid_expires_size();
     test_invalid_badge_size();
     test_invalid_payload_nomem();
+    test_json_payload_parse();
     test_invalid_hash_length();
     test_invalid_signature_length();
     test_invalid_authority_length();

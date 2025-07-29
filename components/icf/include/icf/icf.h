@@ -4,6 +4,9 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
+#ifdef ICF_ENABLE_JSON
+#include <cjson/cJSON.h>
+#endif
 #include "esp_err.h"
 
 /** Read a 32-bit unsigned integer encoded in big-endian order */
@@ -86,6 +89,17 @@ typedef int (*icf_verify_func_t)(const unsigned char *sig,
                                  const unsigned char *pk);
 
 void icf_set_verify_func(icf_verify_func_t func);
+
+#ifdef ICF_ENABLE_JSON
+/**
+ * @brief Parse the JSON system payload into a cJSON object.
+ *
+ * The caller takes ownership of the returned object and must free it
+ * using cJSON_Delete(). NULL is returned if the capsule has no payload
+ * or if parsing fails.
+ */
+cJSON *icf_payload_to_json(const icf_capsule_t *capsule);
+#endif
 
 #ifdef __cplusplus
 }
