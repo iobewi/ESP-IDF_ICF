@@ -4,6 +4,13 @@
 #include <sodium.h>
 #include "icf/icf.h"
 
+#ifndef ICF_MALLOC
+#define ICF_MALLOC malloc
+#endif
+#ifndef ICF_FREE
+#define ICF_FREE free
+#endif
+
 static esp_err_t parse_tlv_url(icf_capsule_t *capsule,
                                const uint8_t *value, uint8_t len)
 {
@@ -94,7 +101,7 @@ esp_err_t icf_parse(const uint8_t *buffer, size_t len, icf_capsule_t *capsule)
             capsule->badge_type = (icf_badge_type_t)value[0];
             break;
         case ICF_TLV_SYS_PAYLOAD:
-            capsule->payload = malloc(tlv_len);
+            capsule->payload = ICF_MALLOC(tlv_len);
             if (!capsule->payload) return ESP_ERR_NO_MEM;
             memcpy(capsule->payload, value, tlv_len);
             capsule->payload_len = tlv_len;
@@ -183,7 +190,7 @@ void icf_capsule_free(icf_capsule_t *capsule)
 
     if (capsule->payload) {
         sodium_memzero(capsule->payload, capsule->payload_len);
-        free(capsule->payload);
+        ICF_FREE(capsule->payload);
         capsule->payload = NULL;
         capsule->payload_len = 0;
     }
