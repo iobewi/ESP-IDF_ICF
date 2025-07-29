@@ -14,6 +14,20 @@ void *test_malloc(size_t sz)
     return malloc(sz);
 }
 
+static int mock_verify_detached(const unsigned char *sig, const unsigned char *m,
+                                unsigned long long mlen, const unsigned char *pk)
+{
+    (void)m;
+    (void)mlen;
+    (void)pk;
+    for (int i = 0; i < 64; ++i) {
+        if (sig[i] != 0xAA) {
+            return -1;
+        }
+    }
+    return 0;
+}
+
 void test_parse_minimal(void)
 {
     const uint8_t capsule[] = {0x01,0x03,'a','b','c',0xFF,0x00};
@@ -74,6 +88,28 @@ void test_parse_strict_invalid_signature(void)
     icf_capsule_t cap;
     uint8_t pk[32] = {0};
     TEST_ASSERT_EQUAL(ESP_ERR_INVALID_CRC, icf_parse_strict(capsule, sizeof(capsule), pk, &cap));
+}
+
+void test_parse_strict_valid_signature(void)
+{
+    uint8_t capsule[150];
+    size_t pos = 0;
+    capsule[pos++] = 0x01; capsule[pos++] = 3; memcpy(&capsule[pos], "abc", 3); pos += 3;
+    size_t signed_len = pos;
+    capsule[pos++] = 0xF2; capsule[pos++] = 0x20; size_t hash_pos = pos; pos += 32;
+    capsule[pos++] = 0xF3; capsule[pos++] = 0x40; memset(&capsule[pos], 0xAA, 64); pos += 64;
+    capsule[pos++] = 0xF4; capsule[pos++] = 0x08; for(int i=0;i<8;i++) capsule[pos++] = i;
+    capsule[pos++] = 0xFF; capsule[pos++] = 0x00;
+    uint8_t hash[32];
+    crypto_hash_sha256(hash, capsule, signed_len);
+    memcpy(&capsule[hash_pos], hash, 32);
+
+    icf_capsule_t cap;
+    uint8_t pk[32] = {0};
+    icf_set_verify_func(mock_verify_detached);
+    TEST_ASSERT_EQUAL(ESP_OK, icf_parse_strict(capsule, pos, pk, &cap));
+    icf_set_verify_func(NULL);
+    icf_capsule_free(&cap);
 }
 
 void test_invalid_hash(void)
@@ -228,6 +264,7 @@ int main(void)
     test_parse_trailing_after_end();
     test_parse_strict_requires_fields();
     test_parse_strict_invalid_signature();
+    test_parse_strict_valid_signature();
     test_invalid_hash();
     test_parse_complete_valid();
     test_invalid_url_size();

@@ -80,6 +80,13 @@ bool icf_verify(const icf_capsule_t *capsule, const uint8_t pubkey[32]);
 void icf_capsule_print(const icf_capsule_t *capsule);
 void icf_capsule_free(icf_capsule_t *capsule);
 
+typedef int (*icf_verify_func_t)(const unsigned char *sig,
+                                 const unsigned char *m,
+                                 unsigned long long mlen,
+                                 const unsigned char *pk);
+
+void icf_set_verify_func(icf_verify_func_t func);
+
 #ifdef __cplusplus
 }
 #endif
