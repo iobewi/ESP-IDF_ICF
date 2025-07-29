@@ -1,3 +1,5 @@
-cmake_minimum_required(VERSION 3.5)
-include($ENV{IDF_PATH}/tools/cmake/project.cmake)
-project(icf_example)
+set(srcs "src/icf.c")
+
+idf_component_register(SRCS ${srcs}
+                       INCLUDE_DIRS "include" 
+                       REQUIRES json mbedtls)
