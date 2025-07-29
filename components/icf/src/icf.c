@@ -11,6 +11,13 @@
 #define ICF_FREE free
 #endif
 
+static icf_verify_func_t verify_func = crypto_sign_verify_detached;
+
+void icf_set_verify_func(icf_verify_func_t func)
+{
+    verify_func = func ? func : crypto_sign_verify_detached;
+}
+
 static esp_err_t parse_tlv_url(icf_capsule_t *capsule,
                                const uint8_t *value, uint8_t len)
 {
@@ -176,7 +183,7 @@ bool icf_verify(const icf_capsule_t *capsule, const uint8_t pubkey[32])
     if (!capsule || !pubkey || !capsule->has_signature || !capsule->has_hash) {
         return false;
     }
-    if (crypto_sign_verify_detached(capsule->signature, capsule->hash, 32, pubkey) == 0) {
+    if (verify_func(capsule->signature, capsule->hash, 32, pubkey) == 0) {
         return true;
     }
     return false;
