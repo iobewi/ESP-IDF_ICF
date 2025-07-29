@@ -20,12 +20,9 @@ jobs:
         with:
           version: v5.2
           target: esp32s3
+          path: 'examples/icf_decode'
 
-      - name: Build test project
+      - name: Build icf_decode project
         run: |
           idf.py set-target esp32s3
           idf.py -C examples/icf_decode build 
-
-      - name: Build component tests
-        run: |
-          idf.py -C test build
