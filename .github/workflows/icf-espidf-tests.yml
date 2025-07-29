@@ -15,14 +15,16 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: ESP-IDF build
+      - name: Build icf_decode project
         uses:  espressif/esp-idf-ci-action@v1
         with:
           version: v5.2
           target: esp32s3
           path: 'examples/icf_decode'
 
-      - name: Build icf_decode project
-        run: |
-          idf.py set-target esp32s3
-          idf.py  build 
+      - name: Build test project
+        uses:  espressif/esp-idf-ci-action@v1
+        with:
+          version: v5.2
+          target: esp32s3
+          path: 'test'
