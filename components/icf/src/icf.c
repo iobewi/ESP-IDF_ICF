@@ -206,6 +206,8 @@ void icf_capsule_free(icf_capsule_t *capsule)
     sodium_memzero(capsule->signature, sizeof(capsule->signature));
     capsule->has_hash = false;
     capsule->has_signature = false;
+    sodium_memzero(capsule->authority_id, sizeof(capsule->authority_id));
+    capsule->has_authority = false;
 }
 
 void icf_capsule_print(const icf_capsule_t *capsule)
