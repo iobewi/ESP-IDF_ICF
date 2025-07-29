@@ -118,6 +118,22 @@ esp_err_t icf_parse(const uint8_t *buffer, size_t len, icf_capsule_t *capsule)
     return ESP_OK;
 }
 
+esp_err_t icf_parse_strict(const uint8_t *buffer, size_t len,
+                           const uint8_t pubkey[32], icf_capsule_t *capsule)
+{
+    esp_err_t err = icf_parse(buffer, len, capsule);
+    if (err != ESP_OK) {
+        return err;
+    }
+    if (!capsule->has_signature || !capsule->has_authority) {
+        return ESP_ERR_INVALID_STATE;
+    }
+    if (!icf_verify(capsule, pubkey)) {
+        return ESP_ERR_INVALID_CRC;
+    }
+    return ESP_OK;
+}
+
 bool icf_verify(const icf_capsule_t *capsule, const uint8_t pubkey[32])
 {
     if (!capsule || !pubkey || !capsule->has_signature || !capsule->has_hash) {

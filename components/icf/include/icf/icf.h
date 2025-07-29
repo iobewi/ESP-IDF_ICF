@@ -60,6 +60,15 @@ typedef struct {
 } icf_capsule_t;
 
 esp_err_t icf_parse(const uint8_t *buffer, size_t len, icf_capsule_t *capsule);
+/**
+ * Parse the capsule and verify its signature and authority ID.
+ *
+ * This helper is intended for "strict" readers which must reject any
+ * capsule lacking a signature or authority identifier. The provided
+ * public key is used to verify the detached signature after parsing.
+ */
+esp_err_t icf_parse_strict(const uint8_t *buffer, size_t len,
+                           const uint8_t pubkey[32], icf_capsule_t *capsule);
 bool icf_verify(const icf_capsule_t *capsule, const uint8_t pubkey[32]);
 void icf_capsule_print(const icf_capsule_t *capsule);
 void icf_capsule_free(icf_capsule_t *capsule);
