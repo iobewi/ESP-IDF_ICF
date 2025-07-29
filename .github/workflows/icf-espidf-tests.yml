@@ -15,8 +15,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up ESP-IDF
-        uses: espressif/install-esp-idf-action@v1
+      - name: ESP-IDF build
+        uses:  espressif/esp-idf-ci-action@v1
         with:
           version: v5.2
           target: esp32s3
