@@ -25,4 +25,4 @@ jobs:
       - name: Build icf_decode project
         run: |
           idf.py set-target esp32s3
-          idf.py -C examples/icf_decode build 
+          idf.py  build 
