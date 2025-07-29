@@ -5,6 +5,8 @@ on:
     paths:
       - '**/*.c'
       - '**/*.h'
+      - '**/*.cpp'
+      - '**/*.hpp'
       - '**/CMakeLists.txt'
       - '.github/workflows/**'
 
