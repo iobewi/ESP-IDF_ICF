@@ -16,6 +16,8 @@ esp_err_t icf_parse(const uint8_t *buffer, size_t len, icf_capsule_t *capsule)
     size_t pos = 0;
     size_t signed_len = 0;
 
+    bool got_end = false;
+
     while (pos + 2 <= len) {
         uint8_t type = buffer[pos++];
         uint8_t tlv_len = buffer[pos++];
@@ -82,7 +84,9 @@ esp_err_t icf_parse(const uint8_t *buffer, size_t len, icf_capsule_t *capsule)
             capsule->has_authority = true;
             break;
         case ICF_TLV_END:
-            return ESP_OK; // done
+            if (tlv_len != 0) return ESP_ERR_INVALID_SIZE;
+            got_end = true;
+            break;
         default:
             // unknown TLV -> ignore
             break;
@@ -101,6 +105,14 @@ esp_err_t icf_parse(const uint8_t *buffer, size_t len, icf_capsule_t *capsule)
                 return ESP_ERR_INVALID_CRC; // use CRC err for hash mismatch
             }
         }
+
+        if (got_end) {
+            break;
+        }
+    }
+
+    if (pos != len) {
+        return ESP_ERR_INVALID_SIZE;
     }
 
     return ESP_OK;
