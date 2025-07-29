@@ -3,8 +3,10 @@ name: ICF Capsule – ESP-IDF Tests
 on:
   pull_request:
     paths:
-      - '**.c'
-      - '**.h'
+      - '**/*.c'
+      - '**/*.h'
+      - '**/CMakeLists.txt'
+      - '.github/workflows/**'
 
 jobs:
   test:
