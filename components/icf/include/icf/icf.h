@@ -6,6 +6,13 @@
 #include <stdbool.h>
 #include "esp_err.h"
 
+/** Read a 32-bit unsigned integer encoded in big-endian order */
+#define READ_U32_BE(ptr) \
+    (((uint32_t)((const uint8_t *)(ptr))[0] << 24) | \
+     ((uint32_t)((const uint8_t *)(ptr))[1] << 16) | \
+     ((uint32_t)((const uint8_t *)(ptr))[2] << 8)  | \
+     ((uint32_t)((const uint8_t *)(ptr))[3]))
+
 #ifdef __cplusplus
 extern "C" {
 #endif
