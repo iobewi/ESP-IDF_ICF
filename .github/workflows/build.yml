@@ -8,6 +8,13 @@ on:
   pull_request:
     branches:
       - main
+    paths:
+      - '**/*.c'
+      - '**/*.h'
+      - '**/*.cpp'
+      - '**/*.hpp'
+      - '**/CMakeLists.txt'
+      - '.github/workflows/**'
 
   schedule:
     - cron: "0 3 * * 6" # Every Saturday at 3AM
