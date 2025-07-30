@@ -64,3 +64,4 @@ sdkconfig
 # VSCode
 .vscode/
 *.code-workspace
+.devcontainer/
