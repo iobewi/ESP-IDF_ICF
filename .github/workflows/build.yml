@@ -51,13 +51,6 @@ jobs:
           path: "examples/icf_decode"
           command: apt-get update && apt-get install -y python3-venv && idf.py --version && idf.py build
 
-      - name: Build test project
-        uses:  espressif/esp-idf-ci-action@v1
-        with:
-          version: v5.2
-          target: esp32s3
-          path: 'test'
-
       - name: esp-idf build tests
         uses: espressif/esp-idf-ci-action@main
         with:
