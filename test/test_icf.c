@@ -412,11 +412,6 @@ TEST_CASE("Capsule complète signée avec hash et authority ID", "[icf]") {
     TEST_ASSERT_TRUE(cap.has_authority);
 }
 
-void app_main(void)
-{
-    unity_run_all_tests();
-}
-
 static const uint8_t dummy_pk[32] = {0};
 
 static const uint8_t *lookup_ok(const uint8_t id[8])
