@@ -1,7 +1,0 @@
-## IDF Component Manager Manifest File
-dependencies:
-  ESP-IDF_ICF:
-    version: '^1'
-    override_path: '../../'
-  libsodium : "*"
-  idf: ">=5.1"
