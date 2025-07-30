@@ -3,11 +3,11 @@ name: Build firmware
 on:
   push:
     branches:
-      - master
+      - main
 
   pull_request:
     branches:
-      - master
+      - main
 
   schedule:
     - cron: "0 3 * * 6" # Every Saturday at 3AM
