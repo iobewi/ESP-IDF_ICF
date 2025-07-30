@@ -119,7 +119,7 @@ Les tests unitaires sont définis avec `Unity` et couvrent les cas nominaux, les
 
 ## 📖 Format TLV supporté
 
-- Spécification du IOBEWI Capsule Format[ICF](https://github.com/iobewi/icf/blob/main/doc/SPEC-ICF.md)
+- Spécification du IOBEWI Capsule Format [ICF](https://github.com/iobewi/icf/blob/main/doc/SPEC-ICF.md)
 
 
 ---
