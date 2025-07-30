@@ -51,7 +51,8 @@ static esp_err_t parse_tlv_signature(icf_capsule_t *capsule,
     return ESP_OK;
 }
 
-esp_err_t icf_parse(const uint8_t *buffer, size_t len, icf_capsule_t *capsule)
+esp_err_t icf_parse(const uint8_t *buffer, size_t len, icf_capsule_t *capsule,
+                    bool strict, icf_pubkey_lookup_func_t lookup)
 {
     if (!buffer || !capsule) {
         return ESP_ERR_INVALID_ARG;
@@ -159,36 +160,10 @@ esp_err_t icf_parse(const uint8_t *buffer, size_t len, icf_capsule_t *capsule)
         return ESP_ERR_INVALID_SIZE;
     }
 
-    return ESP_OK;
-}
-
-esp_err_t icf_parse_strict(const uint8_t *buffer, size_t len,
-                           const uint8_t pubkey[32], icf_capsule_t *capsule)
-{
-    esp_err_t err = icf_parse(buffer, len, capsule);
-    if (err != ESP_OK) {
-        return err;
-    }
-    if (!capsule->has_signature || !capsule->has_authority) {
-        return ESP_ERR_INVALID_STATE;
-    }
-    if (!icf_verify(capsule, pubkey)) {
-        return ESP_ERR_INVALID_CRC;
-    }
-    return ESP_OK;
-}
-
-esp_err_t icf_parse_lookup(const uint8_t *buffer, size_t len,
-                           icf_capsule_t *capsule, bool strict,
-                           icf_pubkey_lookup_func_t lookup)
-{
-    esp_err_t err = icf_parse(buffer, len, capsule);
-    if (err != ESP_OK) {
-        return err;
-    }
     if (!strict) {
         return ESP_OK;
     }
+
     if (!capsule->has_signature || !capsule->has_authority || !lookup) {
         return ESP_ERR_INVALID_STATE;
     }
@@ -197,9 +172,11 @@ esp_err_t icf_parse_lookup(const uint8_t *buffer, size_t len,
     if (!pk) {
         return ESP_ERR_NOT_FOUND;
     }
+
     if (!icf_verify(capsule, pk)) {
         return ESP_ERR_INVALID_CRC;
     }
+
     return ESP_OK;
 }
 

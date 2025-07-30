@@ -22,7 +22,7 @@ const uint8_t sample_capsule[] = {
 void app_main(void)
 {
     icf_capsule_t cap;
-    esp_err_t ret = icf_parse(sample_capsule, sizeof(sample_capsule), &cap);
+    esp_err_t ret = icf_parse(sample_capsule, sizeof(sample_capsule), &cap, false, NULL);
     if (ret == ESP_OK) {
         icf_capsule_print(&cap);
     } else {

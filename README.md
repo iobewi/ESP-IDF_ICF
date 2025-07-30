@@ -71,7 +71,7 @@ void app_main() {
     const uint8_t raw_capsule[] = { 0x01, 0x05, 'h','e','l','l','o', 0xFF, 0x00 };
     icf_capsule_t capsule;
 
-    if (icf_parse(raw_capsule, sizeof(raw_capsule), &capsule) == ESP_OK) {
+    if (icf_parse(raw_capsule, sizeof(raw_capsule), &capsule, false, NULL) == ESP_OK) {
         printf("URL: %s\n", capsule.url);
     } else {
         printf("Erreur de parsing\n");
@@ -86,11 +86,17 @@ void app_main() {
 ```c
 extern uint8_t public_key[32];
 
-esp_err_t res = icf_parse_strict(
+static const uint8_t* my_lookup(const uint8_t id[8]) {
+    (void)id;
+    return public_key; // retourne la clé publique
+}
+
+esp_err_t res = icf_parse(
     capsule_data,
     capsule_len,
-    public_key,
-    &capsule
+    &capsule,
+    true,
+    my_lookup
 );
 ```
 
@@ -103,7 +109,7 @@ const uint8_t* my_lookup(const uint8_t id[8]) {
     // retourner la clé correspondant à `id` ou NULL
 }
 
-esp_err_t res = icf_parse_lookup(
+esp_err_t res = icf_parse(
     capsule_data,
     capsule_len,
     &capsule,
