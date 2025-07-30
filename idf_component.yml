@@ -6,3 +6,4 @@ documentation: https://github.com/iobewi/ESP-IDF_ICF/blob/main/README.md
 issues: https://github.com/iobewi/ESP-IDF_ICF/issues
 dependencies:
   idf: ">=5.0"
+  libsodium: ">=1.0"
