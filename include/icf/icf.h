@@ -77,6 +77,23 @@ esp_err_t icf_parse(const uint8_t *buffer, size_t len, icf_capsule_t *capsule);
  */
 esp_err_t icf_parse_strict(const uint8_t *buffer, size_t len,
                            const uint8_t pubkey[32], icf_capsule_t *capsule);
+
+/** Lookup function returning the public key for an authority. */
+typedef const uint8_t *(*icf_pubkey_lookup_func_t)(const uint8_t authority_id[8]);
+
+/**
+ * Parse a capsule and, optionally, verify it using a dynamic
+ * public key lookup based on the authority_id field.
+ *
+ * When `strict` is true, the capsule must contain a signature and
+ * an authority identifier. The lookup function is used to retrieve
+ * the public key corresponding to this identifier and the signature
+ * is then verified. If lookup fails (NULL) or verification fails,
+ * an error is returned.
+ */
+esp_err_t icf_parse_lookup(const uint8_t *buffer, size_t len,
+                          icf_capsule_t *capsule, bool strict,
+                          icf_pubkey_lookup_func_t lookup);
 bool icf_verify(const icf_capsule_t *capsule, const uint8_t pubkey[32]);
 void icf_capsule_print(const icf_capsule_t *capsule);
 void icf_capsule_free(icf_capsule_t *capsule);

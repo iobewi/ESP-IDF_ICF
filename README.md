@@ -96,6 +96,24 @@ esp_err_t res = icf_parse_strict(
 
 ---
 
+## 🔑 Lookup dynamique de clé publique
+
+```c
+const uint8_t* my_lookup(const uint8_t id[8]) {
+    // retourner la clé correspondant à `id` ou NULL
+}
+
+esp_err_t res = icf_parse_lookup(
+    capsule_data,
+    capsule_len,
+    &capsule,
+    true,
+    my_lookup
+);
+```
+
+---
+
 ## 🧪 Lancer les tests
 
 Depuis le dossier `test/`, lancez :
