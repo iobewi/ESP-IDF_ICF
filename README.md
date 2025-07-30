@@ -1,3 +1,6 @@
+[![Build firmware](https://github.com/iobewi/ESP-IDF_ICF/actions/workflows/build.yml/badge.svg)](https://github.com/iobewi/ESP-IDF_ICF/actions/workflows/build.yml) 
+[![CodeQL analysis](https://github.com/iobewi/ESP-IDF_ICF/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/iobewi/ESP-IDF_ICF/actions/workflows/codeql-analysis.yml)  
+
 # ESP-IDF ICF Component
 
 This repository provides a simple ESP-IDF component named `icf` used to parse
