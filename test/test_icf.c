@@ -26,11 +26,18 @@ static void fill_capsule(icf_capsule_t *cap) {
     memset(cap, 0, sizeof(*cap));
 }
 
+static const uint8_t *test_pk;
+static const uint8_t *test_lookup(const uint8_t id[8])
+{
+    (void)id;
+    return test_pk;
+}
+
 TEST_CASE("icf_parse minimal", "[icf]")
 {
     const uint8_t capsule[] = {0x01,0x03,'a','b','c',0xFF,0x00};
     icf_capsule_t cap;
-    TEST_ASSERT_EQUAL(ESP_OK, icf_parse(capsule, sizeof(capsule), &cap));
+    TEST_ASSERT_EQUAL(ESP_OK, icf_parse(capsule, sizeof(capsule), &cap, false, NULL));
     TEST_ASSERT_EQUAL_STRING("abc", cap.url);
     icf_capsule_free(&cap);
 }
@@ -39,7 +46,7 @@ TEST_CASE("icf_parse no end", "[icf]")
 {
     const uint8_t capsule[] = {0x01,0x03,'a','b','c'};
     icf_capsule_t cap;
-    TEST_ASSERT_EQUAL(ESP_OK, icf_parse(capsule, sizeof(capsule), &cap));
+    TEST_ASSERT_EQUAL(ESP_OK, icf_parse(capsule, sizeof(capsule), &cap, false, NULL));
     TEST_ASSERT_EQUAL_STRING("abc", cap.url);
     icf_capsule_free(&cap);
 }
@@ -48,14 +55,14 @@ TEST_CASE("icf_parse trailing data", "[icf]")
 {
     const uint8_t capsule[] = {0x01,0x03,'a','b','c',0x00};
     icf_capsule_t cap;
-    TEST_ASSERT_EQUAL(ESP_ERR_INVALID_SIZE, icf_parse(capsule, sizeof(capsule), &cap));
+    TEST_ASSERT_EQUAL(ESP_ERR_INVALID_SIZE, icf_parse(capsule, sizeof(capsule), &cap, false, NULL));
 }
 
 TEST_CASE("icf_parse trailing after end", "[icf]")
 {
     const uint8_t capsule[] = {0x01,0x03,'a','b','c',0xFF,0x00,0x00};
     icf_capsule_t cap;
-    TEST_ASSERT_EQUAL(ESP_ERR_INVALID_SIZE, icf_parse(capsule, sizeof(capsule), &cap));
+    TEST_ASSERT_EQUAL(ESP_ERR_INVALID_SIZE, icf_parse(capsule, sizeof(capsule), &cap, false, NULL));
 }
 
 TEST_CASE("icf_parse_strict requires fields", "[icf]")
@@ -63,7 +70,8 @@ TEST_CASE("icf_parse_strict requires fields", "[icf]")
     const uint8_t capsule[] = {0x01,0x03,'a','b','c',0xFF,0x00};
     icf_capsule_t cap;
     uint8_t pk[32] = {0};
-    TEST_ASSERT_EQUAL(ESP_ERR_INVALID_STATE, icf_parse_strict(capsule, sizeof(capsule), pk, &cap));
+    test_pk = pk;
+    TEST_ASSERT_EQUAL(ESP_ERR_INVALID_STATE, icf_parse(capsule, sizeof(capsule), &cap, true, test_lookup));
 }
 
 TEST_CASE("icf_parse_strict invalid signature", "[icf]")
@@ -85,7 +93,8 @@ TEST_CASE("icf_parse_strict invalid signature", "[icf]")
     };
     icf_capsule_t cap;
     uint8_t pk[32] = {0};
-    TEST_ASSERT_EQUAL(ESP_ERR_INVALID_CRC, icf_parse_strict(capsule, sizeof(capsule), pk, &cap));
+    test_pk = pk;
+    TEST_ASSERT_EQUAL(ESP_ERR_INVALID_CRC, icf_parse(capsule, sizeof(capsule), &cap, true, test_lookup));
 }
 
 TEST_CASE("icf_parse_strict valid signature", "[icf]")
@@ -105,7 +114,8 @@ TEST_CASE("icf_parse_strict valid signature", "[icf]")
     icf_capsule_t cap;
     uint8_t pk[32] = {0};
     icf_set_verify_func(mock_verify_detached);
-    TEST_ASSERT_EQUAL(ESP_OK, icf_parse_strict(capsule, pos, pk, &cap));
+    test_pk = pk;
+    TEST_ASSERT_EQUAL(ESP_OK, icf_parse(capsule, pos, &cap, true, test_lookup));
     icf_set_verify_func(NULL);
     icf_capsule_free(&cap);
 }
@@ -134,7 +144,8 @@ static void libsodium_sig_task(void *arg)
     crypto_sign_ed25519_detached(&capsule[sig_pos], &sig_len, hash, 32, sk);
 
     icf_capsule_t cap;
-    TEST_ASSERT_EQUAL(ESP_OK, icf_parse_strict(capsule, pos, pk, &cap));
+    test_pk = pk;
+    TEST_ASSERT_EQUAL(ESP_OK, icf_parse(capsule, pos, &cap, true, test_lookup));
     printf("High watermark: %u\n", (unsigned)uxTaskGetStackHighWaterMark(NULL));
     icf_capsule_free(&cap);
     xSemaphoreGive(sig_done);
@@ -158,7 +169,7 @@ TEST_CASE("icf_parse invalid hash", "[icf]")
     capsule[pos++] = 0xF2; capsule[pos++] = 0x20; memset(&capsule[pos], 0, 32); pos += 32;
     capsule[pos++] = 0xFF; capsule[pos++] = 0x00;
     icf_capsule_t cap;
-    TEST_ASSERT_EQUAL(ESP_ERR_INVALID_CRC, icf_parse(capsule, pos, &cap));
+    TEST_ASSERT_EQUAL(ESP_ERR_INVALID_CRC, icf_parse(capsule, pos, &cap, false, NULL));
 }
 
 TEST_CASE("icf_parse complete valid", "[icf]")
@@ -183,7 +194,7 @@ TEST_CASE("icf_parse complete valid", "[icf]")
     memcpy(&capsule[hash_pos], hash, 32);
 
     icf_capsule_t cap;
-    TEST_ASSERT_EQUAL(ESP_OK, icf_parse(capsule, pos, &cap));
+    TEST_ASSERT_EQUAL(ESP_OK, icf_parse(capsule, pos, &cap, false, NULL));
     TEST_ASSERT_EQUAL_STRING("url", cap.url);
     TEST_ASSERT_EQUAL_STRING("en", cap.language);
     TEST_ASSERT_EQUAL_STRING("title", cap.title);
@@ -206,14 +217,14 @@ TEST_CASE("icf_parse invalid url size", "[icf]")
     uint8_t capsule[205];
     capsule[0] = 0x01; capsule[1] = 201; memset(&capsule[2], 'a', 201); capsule[203] = 0xFF; capsule[204] = 0x00;
     icf_capsule_t cap;
-    TEST_ASSERT_EQUAL(ESP_ERR_INVALID_SIZE, icf_parse(capsule, 205, &cap));
+    TEST_ASSERT_EQUAL(ESP_ERR_INVALID_SIZE, icf_parse(capsule, 205, &cap, false, NULL));
 }
 
 TEST_CASE("icf_parse invalid language size", "[icf]")
 {
     const uint8_t capsule[] = {0x02,0x01,'e',0xFF,0x00};
     icf_capsule_t cap;
-    TEST_ASSERT_EQUAL(ESP_ERR_INVALID_SIZE, icf_parse(capsule, sizeof(capsule), &cap));
+    TEST_ASSERT_EQUAL(ESP_ERR_INVALID_SIZE, icf_parse(capsule, sizeof(capsule), &cap, false, NULL));
 }
 
 TEST_CASE("icf_parse invalid title size", "[icf]")
@@ -221,35 +232,35 @@ TEST_CASE("icf_parse invalid title size", "[icf]")
     uint8_t capsule[70];
     capsule[0]=0x03; capsule[1]=65; memset(&capsule[2],'a',65); capsule[67]=0xFF; capsule[68]=0x00;
     icf_capsule_t cap;
-    TEST_ASSERT_EQUAL(ESP_ERR_INVALID_SIZE, icf_parse(capsule, 69, &cap));
+    TEST_ASSERT_EQUAL(ESP_ERR_INVALID_SIZE, icf_parse(capsule, 69, &cap, false, NULL));
 }
 
 TEST_CASE("icf_parse invalid tag size", "[icf]")
 {
     const uint8_t capsule[] = {0x04,0x02,1,2,0xFF,0x00};
     icf_capsule_t cap;
-    TEST_ASSERT_EQUAL(ESP_ERR_INVALID_SIZE, icf_parse(capsule, sizeof(capsule), &cap));
+    TEST_ASSERT_EQUAL(ESP_ERR_INVALID_SIZE, icf_parse(capsule, sizeof(capsule), &cap, false, NULL));
 }
 
 TEST_CASE("icf_parse invalid retention size", "[icf]")
 {
     const uint8_t capsule[] = {0x05,0x02,1,2,0xFF,0x00};
     icf_capsule_t cap;
-    TEST_ASSERT_EQUAL(ESP_ERR_INVALID_SIZE, icf_parse(capsule, sizeof(capsule), &cap));
+    TEST_ASSERT_EQUAL(ESP_ERR_INVALID_SIZE, icf_parse(capsule, sizeof(capsule), &cap, false, NULL));
 }
 
 TEST_CASE("icf_parse invalid expires size", "[icf]")
 {
     const uint8_t capsule[] = {0x06,0x03,0,0,0,0xFF,0x00};
     icf_capsule_t cap;
-    TEST_ASSERT_EQUAL(ESP_ERR_INVALID_SIZE, icf_parse(capsule, sizeof(capsule), &cap));
+    TEST_ASSERT_EQUAL(ESP_ERR_INVALID_SIZE, icf_parse(capsule, sizeof(capsule), &cap, false, NULL));
 }
 
 TEST_CASE("icf_parse invalid badge size", "[icf]")
 {
     const uint8_t capsule[] = {0xE0,0x02,1,2,0xFF,0x00};
     icf_capsule_t cap;
-    TEST_ASSERT_EQUAL(ESP_ERR_INVALID_SIZE, icf_parse(capsule, sizeof(capsule), &cap));
+    TEST_ASSERT_EQUAL(ESP_ERR_INVALID_SIZE, icf_parse(capsule, sizeof(capsule), &cap, false, NULL));
 }
 
 TEST_CASE("icf_payload json parse", "[icf]")
@@ -259,7 +270,7 @@ TEST_CASE("icf_payload json parse", "[icf]")
         0xFF,0x00
     };
     icf_capsule_t cap;
-    TEST_ASSERT_EQUAL(ESP_OK, icf_parse(capsule, sizeof(capsule), &cap));
+    TEST_ASSERT_EQUAL(ESP_OK, icf_parse(capsule, sizeof(capsule), &cap, false, NULL));
     cJSON *json = icf_payload_to_json(&cap);
     assert(json != NULL);
     cJSON_Delete(json);
@@ -273,7 +284,7 @@ TEST_CASE("icf_parse invalid hash length", "[icf]")
     capsule[pos++] = 0xF2; capsule[pos++] = 0x10; memset(&capsule[pos], 0, 16); pos += 16;
     capsule[pos++] = 0xFF; capsule[pos++] = 0x00;
     icf_capsule_t cap;
-    esp_err_t ret = icf_parse(capsule, pos, &cap);
+    esp_err_t ret = icf_parse(capsule, pos, &cap, false, NULL);
     TEST_ASSERT_EQUAL(ESP_ERR_INVALID_SIZE, ret);
 }
 
@@ -281,41 +292,41 @@ TEST_CASE("icf_parse invalid signature length", "[icf]")
 {
     const uint8_t capsule[] = {0xF3,0x01,0x00,0xFF,0x00};
     icf_capsule_t cap;
-    TEST_ASSERT_EQUAL(ESP_ERR_INVALID_SIZE, icf_parse(capsule, sizeof(capsule), &cap));
+    TEST_ASSERT_EQUAL(ESP_ERR_INVALID_SIZE, icf_parse(capsule, sizeof(capsule), &cap, false, NULL));
 }
 
 TEST_CASE("icf_parse invalid authority length", "[icf]")
 {
     const uint8_t capsule[] = {0xF4,0x07,0,1,2,3,4,5,6,0xFF,0x00};
     icf_capsule_t cap;
-    TEST_ASSERT_EQUAL(ESP_ERR_INVALID_SIZE, icf_parse(capsule, sizeof(capsule), &cap));
+    TEST_ASSERT_EQUAL(ESP_ERR_INVALID_SIZE, icf_parse(capsule, sizeof(capsule), &cap, false, NULL));
 }
 
 TEST_CASE("icf_parse invalid end length", "[icf]")
 {
     const uint8_t capsule[] = {0xFF,0x01,0x00};
     icf_capsule_t cap;
-    TEST_ASSERT_EQUAL(ESP_ERR_INVALID_SIZE, icf_parse(capsule, sizeof(capsule), &cap));
+    TEST_ASSERT_EQUAL(ESP_ERR_INVALID_SIZE, icf_parse(capsule, sizeof(capsule), &cap, false, NULL));
 }
 
 TEST_CASE("TLV: Langue ISO 639-1 correcte", "[icf]") {
     const uint8_t capsule[] = {0x02, 0x02, 'f', 'r', 0xFF, 0x00};
     icf_capsule_t cap;
-    TEST_ASSERT_EQUAL(ESP_OK, icf_parse(capsule, sizeof(capsule), &cap));
+    TEST_ASSERT_EQUAL(ESP_OK, icf_parse(capsule, sizeof(capsule), &cap, false, NULL));
     TEST_ASSERT_EQUAL_STRING("fr", cap.language);
 }
 
 TEST_CASE("TLV: Titre UTF-8", "[icf]") {
     const uint8_t capsule[] = {0x03, 0x05, 'H', 'e', 'l', 'l', 'o', 0xFF, 0x00};
     icf_capsule_t cap;
-    TEST_ASSERT_EQUAL(ESP_OK, icf_parse(capsule, sizeof(capsule), &cap));
+    TEST_ASSERT_EQUAL(ESP_OK, icf_parse(capsule, sizeof(capsule), &cap, false, NULL));
     // Pas d'assert spécifique car cap.title peut être absent de la struct
 }
 
 TEST_CASE("TLV: Tag pédagogique complet", "[icf]") {
     const uint8_t capsule[] = {0x04, 0x03, 0x01, 0x02, 0x11, 0xFF, 0x00};
     icf_capsule_t cap;
-    TEST_ASSERT_EQUAL(ESP_OK, icf_parse(capsule, sizeof(capsule), &cap));
+    TEST_ASSERT_EQUAL(ESP_OK, icf_parse(capsule, sizeof(capsule), &cap, false, NULL));
     TEST_ASSERT_EQUAL_UINT8(0x01, cap.tag.cycle);
     TEST_ASSERT_EQUAL_UINT8(0x02, cap.tag.subject);
     TEST_ASSERT_EQUAL_UINT8(0x11, cap.tag.sub);
@@ -325,23 +336,23 @@ TEST_CASE("TLV: Rétention 0 et 255", "[icf]") {
     const uint8_t capsule1[] = {0x05, 0x01, 0x00, 0xFF, 0x00};
     const uint8_t capsule2[] = {0x05, 0x01, 0xFF, 0xFF, 0x00};
     icf_capsule_t cap;
-    TEST_ASSERT_EQUAL(ESP_OK, icf_parse(capsule1, sizeof(capsule1), &cap));
+    TEST_ASSERT_EQUAL(ESP_OK, icf_parse(capsule1, sizeof(capsule1), &cap, false, NULL));
     TEST_ASSERT_EQUAL_UINT8(0x00, cap.retention);
-    TEST_ASSERT_EQUAL(ESP_OK, icf_parse(capsule2, sizeof(capsule2), &cap));
+    TEST_ASSERT_EQUAL(ESP_OK, icf_parse(capsule2, sizeof(capsule2), &cap, false, NULL));
     TEST_ASSERT_EQUAL_UINT8(0xFF, cap.retention);
 }
 
 TEST_CASE("TLV: Expiration big-endian", "[icf]") {
     const uint8_t capsule[] = {0x06, 0x04, 0x00, 0x00, 0x00, 0x01, 0xFF, 0x00};
     icf_capsule_t cap;
-    TEST_ASSERT_EQUAL(ESP_OK, icf_parse(capsule, sizeof(capsule), &cap));
+    TEST_ASSERT_EQUAL(ESP_OK, icf_parse(capsule, sizeof(capsule), &cap, false, NULL));
     TEST_ASSERT_EQUAL_UINT32(1, cap.expires);
 }
 
 TEST_CASE("TLV: Type de badge", "[icf]") {
     const uint8_t capsule[] = {0xE0, 0x01, 0x02, 0xFF, 0x00};  // badge admin
     icf_capsule_t cap;
-    TEST_ASSERT_EQUAL(ESP_OK, icf_parse(capsule, sizeof(capsule), &cap));
+    TEST_ASSERT_EQUAL(ESP_OK, icf_parse(capsule, sizeof(capsule), &cap, false, NULL));
     TEST_ASSERT_EQUAL_UINT8(0x02, cap.badge_type);
 }
 
@@ -352,13 +363,13 @@ TEST_CASE("TLV: Payload JSON clair", "[icf]") {
     capsule[2 + sizeof(json) - 1] = 0xFF;
     capsule[3 + sizeof(json) - 1] = 0x00;
     icf_capsule_t cap;
-    TEST_ASSERT_EQUAL(ESP_OK, icf_parse(capsule, 4 + sizeof(json) - 1, &cap));
+    TEST_ASSERT_EQUAL(ESP_OK, icf_parse(capsule, 4 + sizeof(json) - 1, &cap, false, NULL));
 }
 
 TEST_CASE("TLV: Authority ID parsing", "[icf]") {
     const uint8_t capsule[] = {0xF4, 0x08, 1,2,3,4,5,6,7,8, 0xFF, 0x00};
     icf_capsule_t cap;
-    TEST_ASSERT_EQUAL(ESP_OK, icf_parse(capsule, sizeof(capsule), &cap));
+    TEST_ASSERT_EQUAL(ESP_OK, icf_parse(capsule, sizeof(capsule), &cap, false, NULL));
     TEST_ASSERT_TRUE(cap.has_authority);
     TEST_ASSERT_EQUAL_UINT8(1, cap.authority_id[0]);
     TEST_ASSERT_EQUAL_UINT8(8, cap.authority_id[7]);
@@ -367,13 +378,13 @@ TEST_CASE("TLV: Authority ID parsing", "[icf]") {
 TEST_CASE("TLV: Mauvaise taille - langue", "[icf]") {
     const uint8_t capsule[] = {0x02, 0x01, 'f', 0xFF, 0x00};
     icf_capsule_t cap;
-    TEST_ASSERT_EQUAL(ESP_ERR_INVALID_SIZE, icf_parse(capsule, sizeof(capsule), &cap));
+    TEST_ASSERT_EQUAL(ESP_ERR_INVALID_SIZE, icf_parse(capsule, sizeof(capsule), &cap, false, NULL));
 }
 
 TEST_CASE("TLV: TLV inconnu ignoré", "[icf]") {
     const uint8_t capsule[] = {0x7A, 0x03, 1,2,3, 0x01, 0x03, 'a','b','c', 0xFF, 0x00};
     icf_capsule_t cap;
-    TEST_ASSERT_EQUAL(ESP_OK, icf_parse(capsule, sizeof(capsule), &cap));
+    TEST_ASSERT_EQUAL(ESP_OK, icf_parse(capsule, sizeof(capsule), &cap, false, NULL));
 }
 
 TEST_CASE("TLV: Répétition du champ URL", "[icf]") {
@@ -383,7 +394,7 @@ TEST_CASE("TLV: Répétition du champ URL", "[icf]") {
         0xFF, 0x00
     };
     icf_capsule_t cap;
-    TEST_ASSERT_EQUAL(ESP_OK, icf_parse(capsule, sizeof(capsule), &cap));
+    TEST_ASSERT_EQUAL(ESP_OK, icf_parse(capsule, sizeof(capsule), &cap, false, NULL));
     TEST_ASSERT_EQUAL_STRING("xyz", cap.url); // Doit écraser le précédent
 }
 
@@ -394,7 +405,8 @@ TEST_CASE("Capsule complète signée avec hash et authority ID", "[icf]") {
     icf_capsule_t cap;
     icf_set_verify_func(mock_verify_detached);  // active le mock de signature
     uint8_t pk[32] = {0};
-    TEST_ASSERT_EQUAL(ESP_OK, icf_parse_strict(capsule, sizeof(capsule), pk, &cap));
+    test_pk = pk;
+    TEST_ASSERT_EQUAL(ESP_OK, icf_parse(capsule, sizeof(capsule), &cap, true, test_lookup));
     TEST_ASSERT_EQUAL_STRING("abc", cap.url);
     TEST_ASSERT_TRUE(cap.has_signature);
     TEST_ASSERT_TRUE(cap.has_authority);
@@ -435,7 +447,7 @@ TEST_CASE("icf_parse_lookup strict valid", "[icf]")
 
     icf_capsule_t cap;
     icf_set_verify_func(mock_verify_detached);
-    TEST_ASSERT_EQUAL(ESP_OK, icf_parse_lookup(capsule, pos, &cap, true, lookup_ok));
+    TEST_ASSERT_EQUAL(ESP_OK, icf_parse(capsule, pos, &cap, true, lookup_ok));
     icf_set_verify_func(NULL);
     icf_capsule_free(&cap);
 }
@@ -451,7 +463,7 @@ TEST_CASE("icf_parse_lookup lookup fail", "[icf]")
 
     icf_capsule_t cap;
     icf_set_verify_func(mock_verify_detached);
-    TEST_ASSERT_EQUAL(ESP_ERR_NOT_FOUND, icf_parse_lookup(capsule, pos, &cap, true, lookup_none));
+    TEST_ASSERT_EQUAL(ESP_ERR_NOT_FOUND, icf_parse(capsule, pos, &cap, true, lookup_none));
     icf_set_verify_func(NULL);
 }
 
