@@ -8,14 +8,6 @@ on:
   schedule:
     - cron: "0 3 * * 6" # Every Saturday at 3AM
 
-name: Build firmware + CodeQL
-
-on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
-
 jobs:
   build-and-analyze:
     runs-on: ubuntu-latest
