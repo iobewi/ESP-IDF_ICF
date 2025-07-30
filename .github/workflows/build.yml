@@ -55,4 +55,4 @@ jobs:
         uses: espressif/esp-idf-ci-action@main
         with:
           esp_idf_version: ${{ matrix.idf_ver }}
-          command: '/bin/bash -c " ln -s /app /opt/esp/idf/tools/unit-test-app/components/icf; cd /opt/esp/idf/tools/unit-test-app; idf.py -T icf build"'
+          command: '/bin/bash -c " ln -s /app/ESP-IDF_ICF /opt/esp/idf/tools/unit-test-app/components/icf; cd /opt/esp/idf/tools/unit-test-app; idf.py -T icf build"'
