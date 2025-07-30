@@ -4,6 +4,9 @@
 #include <sodium.h>
 #include <string.h>
 #include <stdlib.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "freertos/semphr.h"
 
 static int mock_verify_detached(const unsigned char *sig, const unsigned char *m,
                                 unsigned long long mlen, const unsigned char *pk)
@@ -107,7 +110,9 @@ TEST_CASE("icf_parse_strict valid signature", "[icf]")
     icf_capsule_free(&cap);
 }
 
-TEST_CASE("icf_parse_strict libsodium signature", "[icf]")
+static SemaphoreHandle_t sig_done;
+
+static void libsodium_sig_task(void *arg)
 {
     uint8_t capsule[150];
     size_t pos = 0;
@@ -130,7 +135,19 @@ TEST_CASE("icf_parse_strict libsodium signature", "[icf]")
 
     icf_capsule_t cap;
     TEST_ASSERT_EQUAL(ESP_OK, icf_parse_strict(capsule, pos, pk, &cap));
+    printf("High watermark: %u\n", (unsigned)uxTaskGetStackHighWaterMark(NULL));
     icf_capsule_free(&cap);
+    xSemaphoreGive(sig_done);
+    vTaskDelete(NULL);
+}
+
+TEST_CASE("icf_parse_strict libsodium signature", "[icf]")
+{
+    sig_done = xSemaphoreCreateBinary();
+    TEST_ASSERT_NOT_NULL(sig_done);
+    xTaskCreatePinnedToCore(libsodium_sig_task, "sig", 8192, NULL, 5, NULL, 0);
+    xSemaphoreTake(sig_done, portMAX_DELAY);
+    vSemaphoreDelete(sig_done);
 }
 
 TEST_CASE("icf_parse invalid hash", "[icf]")
