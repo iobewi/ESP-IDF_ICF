@@ -404,3 +404,58 @@ void app_main(void)
 {
     unity_run_all_tests();
 }
+
+static const uint8_t dummy_pk[32] = {0};
+
+static const uint8_t *lookup_ok(const uint8_t id[8])
+{
+    (void)id;
+    return dummy_pk;
+}
+
+static const uint8_t *lookup_none(const uint8_t id[8])
+{
+    (void)id;
+    return NULL;
+}
+
+TEST_CASE("icf_parse_lookup strict valid", "[icf]")
+{
+    uint8_t capsule[150];
+    size_t pos = 0;
+    capsule[pos++] = 0x01; capsule[pos++] = 3; memcpy(&capsule[pos], "abc", 3); pos += 3;
+    size_t signed_len = pos;
+    capsule[pos++] = 0xF2; capsule[pos++] = 0x20; size_t hash_pos = pos; pos += 32;
+    capsule[pos++] = 0xF3; capsule[pos++] = 0x40; memset(&capsule[pos], 0xAA, 64); pos += 64;
+    capsule[pos++] = 0xF4; capsule[pos++] = 0x08; for(int i=0;i<8;i++) capsule[pos++] = i;
+    capsule[pos++] = 0xFF; capsule[pos++] = 0x00;
+    uint8_t hash[32];
+    crypto_hash_sha256(hash, capsule, signed_len);
+    memcpy(&capsule[hash_pos], hash, 32);
+
+    icf_capsule_t cap;
+    icf_set_verify_func(mock_verify_detached);
+    TEST_ASSERT_EQUAL(ESP_OK, icf_parse_lookup(capsule, pos, &cap, true, lookup_ok));
+    icf_set_verify_func(NULL);
+    icf_capsule_free(&cap);
+}
+
+TEST_CASE("icf_parse_lookup lookup fail", "[icf]")
+{
+    uint8_t capsule[64];
+    size_t pos = 0;
+    capsule[pos++] = 0xF4; capsule[pos++] = 0x08; for(int i=0;i<8;i++) capsule[pos++] = i;
+    capsule[pos++] = 0xF3; capsule[pos++] = 0x40; memset(&capsule[pos], 0xAA, 64); pos += 64;
+    capsule[pos++] = 0xF2; capsule[pos++] = 0x20; memset(&capsule[pos], 0, 32); pos += 32; // hash 0 -> fails verify but not reached
+    capsule[pos++] = 0xFF; capsule[pos++] = 0x00;
+
+    icf_capsule_t cap;
+    icf_set_verify_func(mock_verify_detached);
+    TEST_ASSERT_EQUAL(ESP_ERR_NOT_FOUND, icf_parse_lookup(capsule, pos, &cap, true, lookup_none));
+    icf_set_verify_func(NULL);
+}
+
+void app_main(void)
+{
+    unity_run_all_tests();
+}
