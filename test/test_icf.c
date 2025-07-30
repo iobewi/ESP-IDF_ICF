@@ -4,6 +4,9 @@
 #include <sodium.h>
 #include <string.h>
 #include <stdlib.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "freertos/semphr.h"
 
 static int mock_verify_detached(const unsigned char *sig, const unsigned char *m,
                                 unsigned long long mlen, const unsigned char *pk)
@@ -105,6 +108,46 @@ TEST_CASE("icf_parse_strict valid signature", "[icf]")
     TEST_ASSERT_EQUAL(ESP_OK, icf_parse_strict(capsule, pos, pk, &cap));
     icf_set_verify_func(NULL);
     icf_capsule_free(&cap);
+}
+
+static SemaphoreHandle_t sig_done;
+
+static void libsodium_sig_task(void *arg)
+{
+    uint8_t capsule[150];
+    size_t pos = 0;
+    capsule[pos++] = 0x01; capsule[pos++] = 3; memcpy(&capsule[pos], "abc", 3); pos += 3;
+    size_t signed_len = pos;
+    capsule[pos++] = 0xF2; capsule[pos++] = 0x20; size_t hash_pos = pos; pos += 32;
+    capsule[pos++] = 0xF3; capsule[pos++] = 0x40; size_t sig_pos = pos; pos += 64;
+    capsule[pos++] = 0xF4; capsule[pos++] = 0x08; for(int i=0;i<8;i++) capsule[pos++] = i;
+    capsule[pos++] = 0xFF; capsule[pos++] = 0x00;
+    uint8_t hash[32];
+    crypto_hash_sha256(hash, capsule, signed_len);
+    memcpy(&capsule[hash_pos], hash, 32);
+
+    unsigned char pk[32];
+    unsigned char sk[64];
+    TEST_ASSERT_EQUAL(0, sodium_init());
+    crypto_sign_ed25519_keypair(pk, sk);
+    unsigned long long sig_len;
+    crypto_sign_ed25519_detached(&capsule[sig_pos], &sig_len, hash, 32, sk);
+
+    icf_capsule_t cap;
+    TEST_ASSERT_EQUAL(ESP_OK, icf_parse_strict(capsule, pos, pk, &cap));
+    printf("High watermark: %u\n", (unsigned)uxTaskGetStackHighWaterMark(NULL));
+    icf_capsule_free(&cap);
+    xSemaphoreGive(sig_done);
+    vTaskDelete(NULL);
+}
+
+TEST_CASE("icf_parse_strict libsodium signature", "[icf]")
+{
+    sig_done = xSemaphoreCreateBinary();
+    TEST_ASSERT_NOT_NULL(sig_done);
+    xTaskCreatePinnedToCore(libsodium_sig_task, "sig", 8192, NULL, 5, NULL, 0);
+    xSemaphoreTake(sig_done, portMAX_DELAY);
+    vSemaphoreDelete(sig_done);
 }
 
 TEST_CASE("icf_parse invalid hash", "[icf]")
