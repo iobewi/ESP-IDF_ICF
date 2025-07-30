@@ -107,6 +107,32 @@ TEST_CASE("icf_parse_strict valid signature", "[icf]")
     icf_capsule_free(&cap);
 }
 
+TEST_CASE("icf_parse_strict libsodium signature", "[icf]")
+{
+    uint8_t capsule[150];
+    size_t pos = 0;
+    capsule[pos++] = 0x01; capsule[pos++] = 3; memcpy(&capsule[pos], "abc", 3); pos += 3;
+    size_t signed_len = pos;
+    capsule[pos++] = 0xF2; capsule[pos++] = 0x20; size_t hash_pos = pos; pos += 32;
+    capsule[pos++] = 0xF3; capsule[pos++] = 0x40; size_t sig_pos = pos; pos += 64;
+    capsule[pos++] = 0xF4; capsule[pos++] = 0x08; for(int i=0;i<8;i++) capsule[pos++] = i;
+    capsule[pos++] = 0xFF; capsule[pos++] = 0x00;
+    uint8_t hash[32];
+    crypto_hash_sha256(hash, capsule, signed_len);
+    memcpy(&capsule[hash_pos], hash, 32);
+
+    unsigned char pk[32];
+    unsigned char sk[64];
+    TEST_ASSERT_EQUAL(0, sodium_init());
+    crypto_sign_ed25519_keypair(pk, sk);
+    unsigned long long sig_len;
+    crypto_sign_ed25519_detached(&capsule[sig_pos], &sig_len, hash, 32, sk);
+
+    icf_capsule_t cap;
+    TEST_ASSERT_EQUAL(ESP_OK, icf_parse_strict(capsule, pos, pk, &cap));
+    icf_capsule_free(&cap);
+}
+
 TEST_CASE("icf_parse invalid hash", "[icf]")
 {
     uint8_t capsule[41];
