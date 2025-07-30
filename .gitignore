@@ -60,3 +60,7 @@ managed_components/
 *.old
 *.lock
 sdkconfig
+
+# VSCode
+.vscode/
+*.code-workspace
