@@ -198,8 +198,8 @@ TEST_CASE("icf_parse complete valid", "[icf]")
     TEST_ASSERT_EQUAL_STRING("url", cap.url);
     TEST_ASSERT_EQUAL_STRING("en", cap.language);
     TEST_ASSERT_EQUAL_STRING("title", cap.title);
-    TEST_ASSERT_EQUAL(1, cap.tag.cycle);
-    TEST_ASSERT_EQUAL(2, cap.tag.subject);
+    TEST_ASSERT_EQUAL(ICF_CYCLE_1_MATERNELLE, cap.tag.cycle);
+    TEST_ASSERT_EQUAL(ICF_SUBJECT_SCIENCE, cap.tag.subject);
     TEST_ASSERT_EQUAL(3, cap.tag.sub);
     TEST_ASSERT_EQUAL(0x07, cap.retention);
     TEST_ASSERT_EQUAL(256, cap.expires);
@@ -327,8 +327,8 @@ TEST_CASE("TLV: Tag pédagogique complet", "[icf]") {
     const uint8_t capsule[] = {0x04, 0x03, 0x01, 0x02, 0x11, 0xFF, 0x00};
     icf_capsule_t cap;
     TEST_ASSERT_EQUAL(ESP_OK, icf_parse(capsule, sizeof(capsule), &cap, false, NULL));
-    TEST_ASSERT_EQUAL_UINT8(0x01, cap.tag.cycle);
-    TEST_ASSERT_EQUAL_UINT8(0x02, cap.tag.subject);
+    TEST_ASSERT_EQUAL_UINT8(ICF_CYCLE_1_MATERNELLE, cap.tag.cycle);
+    TEST_ASSERT_EQUAL_UINT8(ICF_SUBJECT_SCIENCE, cap.tag.subject);
     TEST_ASSERT_EQUAL_UINT8(0x11, cap.tag.sub);
 }
 
