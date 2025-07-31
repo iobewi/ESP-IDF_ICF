@@ -1,3 +1,0 @@
-image: espressif/idf:latest
-setup:
-  - source /opt/esp/idf/export.sh
