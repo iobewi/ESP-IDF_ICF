@@ -219,7 +219,7 @@ void icf_capsule_print(const icf_capsule_t *capsule)
     if (capsule->url[0]) printf("URL: %s\n", capsule->url);
     if (capsule->language[0]) printf("Language: %s\n", capsule->language);
     if (capsule->title[0]) printf("Title: %s\n", capsule->title);
-    printf("Tag: cycle=%u subject=%u sub=%u\n", capsule->tag.cycle, capsule->tag.subject, capsule->tag.sub);
+    printf("Tag: %s\n", icf_tag_to_string(&capsule->tag));
     if (capsule->retention) printf("Retention: %u\n", capsule->retention);
     if (capsule->expires) printf("Expires: %" PRIu32 "\n", capsule->expires);
     if (capsule->payload) {
@@ -244,4 +244,44 @@ cJSON *icf_payload_to_json(const icf_capsule_t *capsule)
     }
     return cJSON_ParseWithLength((const char *)capsule->payload,
                                  capsule->payload_len);
+}
+
+const char *icf_cycle_to_string(icf_cycle_t cycle)
+{
+    switch (cycle) {
+    case ICF_CYCLE_1_MATERNELLE: return "CYCLE_1_MATERNELLE";
+    case ICF_CYCLE_2_CPC2:      return "CYCLE_2_CPC2";
+    case ICF_CYCLE_3_CM16E:     return "CYCLE_3_CM16E";
+    case ICF_CYCLE_4_543E:      return "CYCLE_4_543E";
+    case ICF_CYCLE_LOCAL:       return "CYCLE_LOCAL";
+    case ICF_CYCLE_RESERVED:    return "CYCLE_RESERVED";
+    default:                    return "CYCLE_UNDEFINED";
+    }
+}
+
+const char *icf_subject_to_string(icf_subject_t subject)
+{
+    switch (subject) {
+    case ICF_SUBJECT_READING:  return "READING";
+    case ICF_SUBJECT_SCIENCE:  return "SCIENCE";
+    case ICF_SUBJECT_MUSIC:    return "MUSIC";
+    case ICF_SUBJECT_FOREIGN:  return "FOREIGN";
+    case ICF_SUBJECT_PROJECT:  return "PROJECT";
+    case ICF_SUBJECT_MATH:     return "MATH";
+    case ICF_SUBJECT_CIVIC:    return "CIVIC";
+    case ICF_SUBJECT_LOCAL:    return "LOCAL";
+    case ICF_SUBJECT_RESERVED: return "RESERVED";
+    default:                   return "UNDEFINED";
+    }
+}
+
+const char *icf_tag_to_string(const icf_tag_t *tag)
+{
+    static char buf[64];
+    if (!tag) return "(null)";
+    snprintf(buf, sizeof(buf), "%s|%s|%u",
+             icf_cycle_to_string(tag->cycle),
+             icf_subject_to_string(tag->subject),
+             tag->sub);
+    return buf;
 }

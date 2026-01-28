@@ -41,11 +41,40 @@ typedef enum {
     ICF_BADGE_ADMIN         = 0x02
 } icf_badge_type_t;
 
+/**
+ * @brief Cycle pedagogique selon SPEC-ICF
+ */
+typedef enum {
+    ICF_CYCLE_UNDEFINED    = 0x00,
+    ICF_CYCLE_1_MATERNELLE = 0x01,
+    ICF_CYCLE_2_CPC2       = 0x02,
+    ICF_CYCLE_3_CM16E      = 0x03,
+    ICF_CYCLE_4_543E       = 0x04,
+    ICF_CYCLE_LOCAL        = 0xFE,
+    ICF_CYCLE_RESERVED     = 0xFF,
+} icf_cycle_t;
+
+/**
+ * @brief Matière pédagogique selon SPEC-ICF
+ */
+typedef enum {
+    ICF_SUBJECT_UNDEFINED = 0x00,
+    ICF_SUBJECT_READING   = 0x01,
+    ICF_SUBJECT_SCIENCE   = 0x02,
+    ICF_SUBJECT_MUSIC     = 0x03,
+    ICF_SUBJECT_FOREIGN   = 0x04,
+    ICF_SUBJECT_PROJECT   = 0x05,
+    ICF_SUBJECT_MATH      = 0x06,
+    ICF_SUBJECT_CIVIC     = 0x07,
+    ICF_SUBJECT_LOCAL     = 0xFE,
+    ICF_SUBJECT_RESERVED  = 0xFF,
+} icf_subject_t;
+
 /** Tag pedagogique */
 typedef struct {
-    uint8_t cycle;
-    uint8_t subject;
-    uint8_t sub;
+    icf_cycle_t cycle;
+    icf_subject_t subject;
+    uint8_t sub;  /**< Champ libre, non normalisé */
 } icf_tag_t;
 
 /** Capsule structure */
@@ -85,6 +114,10 @@ esp_err_t icf_parse(const uint8_t *buffer, size_t len, icf_capsule_t *capsule,
 bool icf_verify(const icf_capsule_t *capsule, const uint8_t pubkey[32]);
 void icf_capsule_print(const icf_capsule_t *capsule);
 void icf_capsule_free(icf_capsule_t *capsule);
+
+const char *icf_cycle_to_string(icf_cycle_t cycle);
+const char *icf_subject_to_string(icf_subject_t subject);
+const char *icf_tag_to_string(const icf_tag_t *tag);
 
 typedef int (*icf_verify_func_t)(const unsigned char *sig,
                                  const unsigned char *m,
